@@ -2,6 +2,9 @@
 const router = require("express").Router();
 const User = require("../models/user");
 const { calculateJWTToken } = require("../helpers/users");
+const jwt = require('jsonwebtoken');
+const privateKey = process.env.PRIVATE_KEY
+
 
 // router.get("/", (req, res) => {
 //   console.log(res);
@@ -49,5 +52,23 @@ router.post("/signup", (req, res) => {
       else res.status(500).send("Error saving the user");
     });
 });
+
+// http://localhost:5000/auth/verify-token
+
+router.get('/verify-token', (req, res) => {
+  const token = req.headers.authorization.split(' ')[1]
+  if(!token) return res.status(401).json({ message: "User needs to login"});
+  
+  const decryptToken = jwt.verify(token, privateKey)
+  console.log(decryptToken)
+  User.findOne(decryptToken.id).then((foundUser)=> {
+    if(!foundUser) return res.status(404).json({message: 'User not found'});
+    res.status(200).send(foundUser)
+  })
+})
+
+
+
+
 
 module.exports = router;
