@@ -5,10 +5,14 @@ CREATE TABLE users
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR
 (90) UNIQUE,
-    password VARCHAR
+    hashedPassword VARCHAR
 (90),
-    name VARCHAR
+    firstname VARCHAR
 (90),
     lastname VARCHAR
+(90),
+ city VARCHAR
+(90), 
+language VARCHAR
 (90)
 );
