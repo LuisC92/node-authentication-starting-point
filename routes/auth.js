@@ -18,7 +18,7 @@ router.post("/login", (req, res) => {
           if (passwordIsCorrect) {
             const token = calculateJWTToken(user);
             res.cookie("user_token", token);
-            res.send("User Logged");
+            res.status(202).send(user);
           } else res.status(401).send("Invalid credentials");
         }
       );
