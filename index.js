@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const connection = require("./config");
 const authRouter = require("./routes/auth");
+const passwordRouter = require("./routes/passwordManagement");
 const port = process.env.PORT || 5001;
-const passport = require("passport");
 
 connection.connect((err) => {
   if (err) throw err;
@@ -12,6 +12,7 @@ connection.connect((err) => {
 
 app.use(express.json());
 app.use("/auth", authRouter);
+app.use("/password", passwordRouter);
 
 app.listen(port, (err) => {
   if (err) throw err;

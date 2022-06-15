@@ -16,34 +16,31 @@ const validate = (data, forCreation = true) => {
 };
 
 const findByEmail = (email) => {
-    return db
+  return db
     .query("SELECT * FROM users WHERE email = ?", [email])
     .then(([results]) => results[0]);
 };
 
 const findMany = () => {
-    let sql = "SELECT id, email, firstname, lastname, city, language FROM users";
-    return db.query(sql).then(([results]) => results);
+  let sql = "SELECT id, email, firstname, lastname, city, language FROM users";
+  return db.query(sql).then(([results]) => results);
 };
 
 const findOne = (id) => {
-    return db
-    .query(
-        "SELECT id, email, firstname, lastname, city, language FROM users WHERE id = ?",
-        [id]
-        )
-        .then(([results]) => results[0]);
-    };
-    
+  return db
+    .query("SELECT * FROM users WHERE id = ?", [id])
+    .then(([results]) => results[0]);
+};
+
 const findByEmailWithDifferentId = (email, id) => {
-    return db
+  return db
     .query("SELECT * FROM users WHERE email = ? AND id <> ?", [email, id])
     .then(([results]) => results[0]);
 };
 
 const create = ({ email, password, firstname, lastname, city, language }) => {
-    // const salt = bcrypt.genSalt(10)
-    // console.log(salt)
+  // const salt = bcrypt.genSalt(10)
+  // console.log(salt)
   return bcrypt.hash(password, 10).then((hashedPassword) => {
     return db
       .query("INSERT INTO users SET ?", {
@@ -62,18 +59,27 @@ const create = ({ email, password, firstname, lastname, city, language }) => {
   });
 };
 
+const changePassword = (newPassword, userId) => {
+  return bcrypt.hash(newPassword, 10).then((hash) => {
+    return db.query("UPDATE users SET hashedPassword = ? WHERE id = ?", [
+      hash,
+      userId,
+    ]);
+  });
+};
+
 const update = (id, newAttributes) => {
-    return db.query("UPDATE users SET ? WHERE id = ?", [newAttributes, id]);
+  return db.query("UPDATE users SET ? WHERE id = ?", [newAttributes, id]);
 };
 
 const destroy = (id) => {
-    return db
+  return db
     .query("DELETE FROM users WHERE id = ?", [id])
     .then(([result]) => result.affectedRows !== 0);
 };
 
 const verifyPassword = async (plainPassword, hashedPassword) => {
-    return !bcrypt.compareSync(hashedPassword, plainPassword);
+  return bcrypt.compareSync(plainPassword, hashedPassword);
 };
 
 module.exports = {
@@ -81,6 +87,7 @@ module.exports = {
   findOne,
   validate,
   create,
+  changePassword,
   update,
   destroy,
   findByEmail,
