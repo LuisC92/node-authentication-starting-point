@@ -2,9 +2,9 @@ const router = require("express").Router();
 const User = require("../models/user");
 const passport = require("passport");
 
-// http://localhost:5000/password/change-password
-//Route change password
-
+//TODO add comment to the code
+//TODO add passport to validation
+//? http://localhost:5000/password/change-password
 router.post("/change-password", (req, res) => {
   const { currentPassword, newPassword, userId } = req.body;
   User.findOne(userId).then((foundUser) => {
@@ -25,8 +25,15 @@ router.post("/change-password", (req, res) => {
   });
 });
 
-//Reset password
+//TODO add comment to the future code
+//? http://localhost:5000/password/reset-password
 
-// http://localhost:5000/password/reset
+
+
+
+
+
+
+
 
 module.exports = router;

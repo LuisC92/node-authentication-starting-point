@@ -29,7 +29,7 @@ const findMany = () => {
 const findOne = (id) => {
   return db
     .query("SELECT * FROM users WHERE id = ?", [id])
-    .then(([results]) => results[0]);
+    .then(([results]) => results[0]).catch((err) => err);
 };
 
 const findByEmailWithDifferentId = (email, id) => {
@@ -39,8 +39,6 @@ const findByEmailWithDifferentId = (email, id) => {
 };
 
 const create = ({ email, password, firstname, lastname, city, language }) => {
-  // const salt = bcrypt.genSalt(10)
-  // console.log(salt)
   return bcrypt.hash(password, 10).then((hashedPassword) => {
     return db
       .query("INSERT INTO users SET ?", {

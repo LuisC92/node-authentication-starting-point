@@ -1,17 +1,19 @@
-//  Add in the authentication within this file
+//*  Add in the authentication within this file
 const router = require("express").Router();
 const User = require("../models/user");
 const { calculateJWTToken } = require("../helpers/users");
 
-// jwt strategy modules
+//* jwt strategy modules
 const jwt = require("jsonwebtoken");
 const JWTStrategy = require("passport-jwt").Strategy;
 const ExtractJWT = require("passport-jwt").ExtractJwt;
 
-// Passport modules for local strategy
+//* Passport modules for local strategy
 const passport = require("passport");
 const res = require("express/lib/response");
 const LocalStrategy = require("passport-local").Strategy;
+
+//* generate passport Strategy
 passport.use(
   new JWTStrategy(
     {
@@ -23,25 +25,46 @@ passport.use(
     }
   )
 );
+
+//* generate passport LocalStrategy
 passport.use(
-  "local",
+  "local-login",
   new LocalStrategy(
     {
-      // The email and password is received from the login route
+      //* The email and password is received from the login route
       usernameField: "email",
       passwordField: "password",
+      passReqToCallback: true, //* allows us to pass back the entire request to the callback, by default it's false
       session: false,
     },
-    (email, password, callback) => {
-      User.findByEmail(email).then((user) => {
-        if (!user) res.status(400).send("Email not found");
+    (req, email, password, callback) => {
+      //* callback with email and password from our form
+      User.findByEmail(email).then((user, err) => {
+        if (err) return callback(err, null, "Error 500");
+        if (!user)
+          //* If there is no user
+          return callback(
+            "USER_NOT_FOUND",
+            false,
+            ("loginMessage", "User Not found.")
+          );
         else {
-          // If there is a user with that email but password is incorrect
           User.verifyPassword(password, user.hashedPassword).then(
             (passwordIsCorrect) => {
               if (passwordIsCorrect) {
-                // If password and email is correct send user information to callback
-                return callback(null, user);
+                //* If password and email is correct send user information to callback
+                return callback(
+                  null,
+                  user,
+                  ("loginMessage", "USER CORRECT!")
+                );
+              } else {
+                //* If there is a user with that email but password is incorrect
+                return callback(
+                  "INVALID_PASSWORD",
+                  false,
+                  ("Oops! Wrong password.")
+                );
               }
             }
           );
@@ -50,35 +73,86 @@ passport.use(
     }
   )
 );
-// http://localhost:5000/auth/login
+
+//TODO still need to test this version using passport 
+//! required for persistent login sessions
+//! passport needs ability to serialize and unserialize users out of session
+
+// * used to serialize the user for the session
+passport.serializeUser(function (user, callback) {
+  callback(null, user.id);
+});
+
+// * used to deserialize the user
+passport.deserializeUser(function (id, callback) {
+  User.findOne(id).then(
+    function (err, rows) {
+      callback(err, rows[0]);
+  })
+})
+
+
+//? http://localhost:5000/auth/login
 router.post("/login", (req, res) => {
   passport.authenticate(
-    "local",
-    // Passport callback function below
+    "local-login",
+    //* Passport callback function below
     (err, user, info) => {
-      const { email, password } = req.body;
-      User.findByEmail(email).then((foundUser) => {
-        if (err) return res.status(500).send(err);
-        if (!foundUser) res.status(401).send({ message: info });
-        else {
-          User.verifyPassword(password, foundUser.hashedPassword)
-            .then((passwordIsCorrect) => {
-              if (passwordIsCorrect) {
-                const token = calculateJWTToken(user);
-                res.cookie("user_token", token);
-                const { hashedPassword, ...foundUser } = user;
-                return res.status(202).send(foundUser);
-              } else res.status(401).send("Invalid credentials");
-            })
-            .catch((error) => {
-              return res.status(500).send("cannot get fu***** password");
-            });
-        }
-      });
+      // console.log("err", err);
+      // console.log("info", info);
+      // console.log("user", user);
+
+      //* error handling callback
+      if (err) {
+        //* user not found from callback
+        if (err === "USER_NOT_FOUND") res.status(403).json({ message: info });
+        //* invalid password from callback
+        else if (err === "INVALID_PASSWORD")
+          res.status(401).json({ message: info });
+        //* general error from callback
+        else res.status(500).send(err);
+      } else {
+        //* create token
+        const token = calculateJWTToken(user);
+        //* send token to browser and store it on cookies
+        res.cookie("user_token", token);
+        //* destructuring object user to take out hashedPassword
+        const { hashedPassword, ...userData } = user;
+        // console.log("user", userData);
+        //* send user to frontend
+        return res.status(202).send(userData);
+
+
+        //! all of this block of code bellow can be commented
+        // const { email, password } = req.body;
+
+        // User.findByEmail(email).then((foundUser, error) => {
+        //   if (error) return res.status(500).send(error);
+        //   if (!foundUser) res.status(401).send({ message: info });
+        //   else {
+
+        //     User.verifyPassword(password, foundUser.hashedPassword)
+        //       .then((passwordIsCorrect) => {
+        //         if (passwordIsCorrect) {
+        //           const token = calculateJWTToken(foundUser);
+        //           res.cookie("user_token", token);
+        //           const { hashedPassword, ...userData } = foundUser;
+        //           // console.log("user", userData);
+        //           return res.status(202).send(userData);
+        //         } else res.status(401).send({ message: "Invalid password" });
+        //       })
+        //       .catch((err) => {
+        //         return res.status(500).send(err);
+        //       });
+        //   }
+        // });
+      }
     }
-  )(req, res);
+  )(req, res); //* send callback request and response
 });
-// http://localhost:5000/auth/signup
+
+//TODO add comment to the code
+//? http://localhost:5000/auth/signup
 router.post("/signup", (req, res) => {
   const { email } = req.body;
   let validationErrors = null;
@@ -101,7 +175,9 @@ router.post("/signup", (req, res) => {
       else res.status(500).send("Error saving the user");
     });
 });
-// http://localhost:5000/auth/verify-token
+
+//TODO add comment to the code 
+//? http://localhost:5000/auth/verify-token
 router.get("/verify-token", async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
   if (!token) {
@@ -114,4 +190,5 @@ router.get("/verify-token", async (req, res) => {
     res.status(200).send(user);
   }, decryptedUser);
 });
+
 module.exports = router;
