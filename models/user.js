@@ -15,6 +15,11 @@ const validate = (data, forCreation = true) => {
   }).validate(data, { abortEarly: false }).error;
 };
 
+const validatePassword = (data, forCreation = true) => {
+  const presence = forCreation ? "required" : "optional";
+  return Joi.string().min(8).max(24).presence(presence).validate(data, { abortEarly: false }).error;
+};
+
 const findByEmail = (email) => {
   return db
     .query("SELECT * FROM users WHERE email = ?", [email])
@@ -50,7 +55,7 @@ const create = ({ email, password, firstname, lastname, city, language }) => {
         language,
       })
       .then(([result]) => {
-        console.log(result);
+        // console.log(result);
         const id = result.insertId;
         return { email, firstname, lastname, city, language, id };
       });
@@ -91,4 +96,5 @@ module.exports = {
   findByEmail,
   findByEmailWithDifferentId,
   verifyPassword,
+  validatePassword
 };

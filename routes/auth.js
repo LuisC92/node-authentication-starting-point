@@ -10,7 +10,6 @@ const ExtractJWT = require("passport-jwt").ExtractJwt;
 
 //* Passport modules for local strategy
 const passport = require("passport");
-const res = require("express/lib/response");
 const LocalStrategy = require("passport-local").Strategy;
 
 //* generate passport Strategy
@@ -121,51 +120,30 @@ router.post("/login", (req, res) => {
         // console.log("user", userData);
         //* send user to frontend
         return res.status(202).send(userData);
-
-
-        //! all of this block of code bellow can be commented
-        // const { email, password } = req.body;
-
-        // User.findByEmail(email).then((foundUser, error) => {
-        //   if (error) return res.status(500).send(error);
-        //   if (!foundUser) res.status(401).send({ message: info });
-        //   else {
-
-        //     User.verifyPassword(password, foundUser.hashedPassword)
-        //       .then((passwordIsCorrect) => {
-        //         if (passwordIsCorrect) {
-        //           const token = calculateJWTToken(foundUser);
-        //           res.cookie("user_token", token);
-        //           const { hashedPassword, ...userData } = foundUser;
-        //           // console.log("user", userData);
-        //           return res.status(202).send(userData);
-        //         } else res.status(401).send({ message: "Invalid password" });
-        //       })
-        //       .catch((err) => {
-        //         return res.status(500).send(err);
-        //       });
-        //   }
-        // });
       }
     }
   )(req, res); //* send callback request and response
 });
 
-//TODO add comment to the code
 //? http://localhost:5000/auth/signup
 router.post("/signup", (req, res) => {
   const { email } = req.body;
   let validationErrors = null;
+  //* check if the email already exists
   User.findByEmail(email)
     .then((existingUserWithEmail) => {
+      //* email duplicated
       if (existingUserWithEmail) return Promise.reject("DUPLICATE_EMAIL");
       validationErrors = User.validate(req.body);
+      //* errors on body fields
       if (validationErrors) return Promise.reject("INVALID_DATA");
+      //* create the user
       return User.create(req.body);
     })
     .then((createdUser) => {
       res.status(201).json(createdUser);
     })
+    //* error handling
     .catch((err) => {
       console.log(err);
       if (err === "DUPLICATE_EMAIL")
@@ -176,16 +154,22 @@ router.post("/signup", (req, res) => {
     });
 });
 
-//TODO add comment to the code 
+//! this route only used to check if the token already exists in browser
 //? http://localhost:5000/auth/verify-token
 router.get("/verify-token", async (req, res) => {
+  //* take the token from the browser
   const token = req.headers.authorization.split(" ")[1];
+  //* there is no token
   if (!token) {
     return res.status(401).json("You need to Login");
   }
+  //* if exists, decrypt token to get the user
   const decryptedUser = await jwt.verify(token, process.env.JWT_SECRET);
+  //* find user on DB
   User.findOne((err, results) => {
+    //* if user is not found
     if (err) res.status(500).json(err.toString());
+    //* if exists user, take out password from object and send it
     const { hashedPassword, ...user } = results;
     res.status(200).send(user);
   }, decryptedUser);
